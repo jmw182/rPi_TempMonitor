@@ -1,6 +1,6 @@
 import smtplib
 
-class emailAlertSender:
+class EAS:
 # Wrapper for smtplib to send easy email alerts.
 # Defaults to SMTP SSL connection over port 465.
 # Defaults to gmail host address
