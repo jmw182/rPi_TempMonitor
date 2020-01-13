@@ -65,13 +65,7 @@ class emailAlertSender:
         if recipient is not None:
             self.recipient = recipient
 
-        self.full_email_text = """\
-From: %s
-To: %s
-Subject: %s
-
-%s
-""" % (self.sender, self.recipient, self.subject, self.body)
+        self.full_email_text = "From: %s\nTo: %s\nSubject: %s\n\n%s\n" % (self.sender, self.recipient, self.subject, self.body)
     # end form_alert_message
 
     def send_mail(self):
