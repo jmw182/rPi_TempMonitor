@@ -42,9 +42,28 @@ class TempMonitor:
             print(message)
             self.send_alert(subject,message)
 
+    def updateStats(self):
+        t = self.temperature()
+        self.minT = min(self.minT,t)
+        self.maxT = max(self.maxT,t)
+        self.sumT += t
+        self.count += 1
+        self.meanT = self.sumT/self.count
+
+    def printUpdate(self):
+        print(self.curTimeString())
+        print(self.getSensorString()) # print current sensors
+        print("Temperature Stats:")
+        print("Min: %0.1f, Max: %0.1f, Mean: %0.1f\n" % self.minT, self.maxT, self.meanT)
+
     def run(self):
         self.start_time = time.time()
-        
+        self.minT = self.temperature()
+        self.maxT = self.minT
+        self.sumT = self.minT
+        self.meanT = self.minT
+        self.count = 1
+
         subject = "Raspberry Pi Temperature Monitor: Startup"
         message = self.curTimeString() + " Startup\n" + self.getSensorString()
         print(subject)
@@ -56,7 +75,8 @@ class TempMonitor:
 
             self.checkMinTemp() # check that min temp is satisfied
 
-            print(self.curTimeString() + "\n" + self.getSensorString()) # print sensor
+            self.updateStats()
+            self.printUpdate()
 
         # end while
     # end run
