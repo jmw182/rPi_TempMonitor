@@ -23,8 +23,8 @@ class TempMonitor:
 
     def getSensorString(self):
         deg = u'\xb0'  # utf code for degree
-        t = str(self.temperature())
-        h = str(self.humidity())
+        t = "%0.1f" % self.temperature()
+        h = "%0.1f" % self.humidity()
         sensStr = "Temperature: " + t + deg + "F\nHumidity: " + h + "%"
         return sensStr
 
