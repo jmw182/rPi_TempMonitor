@@ -51,6 +51,14 @@ class TempMonitor:
         self.count += 1
         self.meanT = self.sumT/self.count
 
+    def statsReset(self):
+        t = self.temperature()
+        self.minT = t
+        self.maxT = t
+        self.sumT = t
+        self.count = 1
+        self.meanT = t
+
     def printUpdate(self):
         print(self.curTimeString())
         print(self.getSensorString()) # print current sensors
@@ -60,11 +68,7 @@ class TempMonitor:
 
     def run(self):
         self.start_time = time.time()
-        self.minT = self.temperature()
-        self.maxT = self.minT
-        self.sumT = self.minT
-        self.meanT = self.minT
-        self.count = 1
+        self.statsReset()
 
         subject = "Raspberry Pi Temperature Monitor: Startup"
         message = self.curTimeString() + " Startup\n" + self.getSensorString()
