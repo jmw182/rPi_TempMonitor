@@ -6,9 +6,10 @@ import time
 import sys
 
 class TempMonitor:
-    def __init__(self,username,password):
+    def __init__(self,recipient,username,password):
         self.EAS = EmailAlertSender.EAS()
         self.EAS.login(username,password)
+        self.EAS.recipient = recipient
         self.SensorObj = Si7021EnvSensor.EnvSensor()
     # end __init__
 
@@ -33,15 +34,18 @@ class TempMonitor:
         
         subject = "Raspberry Pi Temperature Monitor Startup"
         message = self.curTimeString() + " Startup\n" + self.getSensorString()
-        print (subject)
+        #print (subject)
         print(message)
+        self.EAS.form_alert_message(subject,message)
+        self.EAS.send_alert()
 
 
     # end run
 # end class
 
 if __name__ == "__main__":
-    username = sys.argv[1] # email username
-    password = sys.argv[2] # email password
-    tm = TempMonitor(username,password)
+    recipient = sys.argv[1] # email recipient
+    username = sys.argv[2] # email username (sender)
+    password = sys.argv[3] # email password
+    tm = TempMonitor(recipient,username,password)
     tm.run()
