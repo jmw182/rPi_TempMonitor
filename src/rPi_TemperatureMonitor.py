@@ -23,7 +23,7 @@ class TempMonitor:
         return time.strftime("%x %I:%M%p")
 
     def getSensorString(self):
-        deg = u'\xb0'  # utf code for degree
+        deg = "deg" #u'\xb0'  # utf code for degree, EAS currently does not support unicode
         t = "%0.1f" % self.temperature()
         h = "%0.1f" % self.humidity()
         sensStr = "Temperature: " + t + deg + "F\nHumidity: " + h + "%"
