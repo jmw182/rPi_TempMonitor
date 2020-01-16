@@ -12,6 +12,7 @@ class TempMonitor:
         self.EAS.recipient = recipient
         self.SensorObj = Si7021EnvSensor.EnvSensor()
         self.minTemp = 60 # change to input?
+        self.pollTime = 30 # how often to check sensor
     # end __init__
 
     def temperature(self):
@@ -54,7 +55,8 @@ class TempMonitor:
         print(self.curTimeString())
         print(self.getSensorString()) # print current sensors
         print("Temperature Stats:")
-        print("Min: %0.1f, Max: %0.1f, Mean: %0.1f\n" % self.minT, self.maxT, self.meanT)
+        statsStr = "Min: %0.1f, Max: %0.1f, Mean: %0.1f" % (self.minT, self.maxT, self.meanT)
+        print(statsStr + "\n")
 
     def run(self):
         self.start_time = time.time()
@@ -71,7 +73,7 @@ class TempMonitor:
         #self.send_alert(subject,message)
 
         while True:
-            time.sleep(30) # sleep 30 s
+            time.sleep(self.pollTime) # sleep 30 s
 
             self.checkMinTemp() # check that min temp is satisfied
 
