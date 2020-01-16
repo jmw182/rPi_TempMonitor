@@ -11,6 +11,7 @@ class TempMonitor:
         self.EAS.login(username,password)
         self.EAS.recipient = recipient
         self.SensorObj = Si7021EnvSensor.EnvSensor()
+        self.minTemp = 60 # change to input?
     # end __init__
 
     def temperature(self):
@@ -29,17 +30,35 @@ class TempMonitor:
         sensStr = "Temperature: " + t + deg + "F\nHumidity: " + h + "%"
         return sensStr
 
-    def run(self):
-        self.start_time = time.time()
-        
-        subject = "Raspberry Pi Temperature Monitor Startup"
-        message = self.curTimeString() + " Startup\n" + self.getSensorString()
-        #print (subject)
-        print(message)
+    def send_alert(self,subject,message):
         self.EAS.form_alert_message(subject,message)
         self.EAS.send_alert()
 
+    def checkMinTemp(self):
+        if self.temperature() < self.minTemp:
+            subject = "Raspberry Pi Temperature Monitor: Low Temp Alert"
+            message = self.curTimeString() + " Low Temperature\n" + self.getSensorString()
+            print(subject)
+            print(message)
+            self.send_alert(subject,message)
 
+    def run(self):
+        self.start_time = time.time()
+        
+        subject = "Raspberry Pi Temperature Monitor: Startup"
+        message = self.curTimeString() + " Startup\n" + self.getSensorString()
+        print(subject)
+        print(message)
+        #self.send_alert(subject,message)
+
+        while True:
+            time.sleep(30) # sleep 30 s
+
+            self.checkMinTemp() # check that min temp is satisfied
+
+            print(self.curTimeString() + " " + self.getSensorString()) # print sensor
+
+        # end while
     # end run
 # end class
 
