@@ -17,6 +17,9 @@ class TempMonitor:
         self.start_mtime = time.monotonic()
         self.min_T_alert_time = time.monotonic() # time of min temp alert, to find elasped time
         self.max_min_T_alert_interval = 60*60 # max time between min temp alerts in seconds
+        self.daily_digest_time = datetime.time(16,45) # time for a daily digest email
+        self.last_digest_date = datetime.date.today() # initialize to today
+        #self.last_digest_date = datetime.date.today() - datetime.timedelta(days=1) # initialize to yesterday's date
     # end __init__
 
     def temperature(self):
@@ -24,6 +27,22 @@ class TempMonitor:
     
     def humidity(self):
         return self.SensorObj.getHumidity()
+
+    def statsReset(self):
+        t = self.temperature()
+        self.minT = t
+        self.maxT = t
+        self.sumT = t
+        self.count = 1
+        self.meanT = t
+
+    def updateStats(self):
+        t = self.temperature()
+        self.minT = min(self.minT,t)
+        self.maxT = max(self.maxT,t)
+        self.sumT += t
+        self.count += 1
+        self.meanT = self.sumT/self.count
 
     def curTimeString(self):
         return time.strftime("%x %I:%M%p")
@@ -52,28 +71,26 @@ class TempMonitor:
             print(message)
             self.send_alert(subject,message)
 
-    def updateStats(self):
-        t = self.temperature()
-        self.minT = min(self.minT,t)
-        self.maxT = max(self.maxT,t)
-        self.sumT += t
-        self.count += 1
-        self.meanT = self.sumT/self.count
-
-    def statsReset(self):
-        t = self.temperature()
-        self.minT = t
-        self.maxT = t
-        self.sumT = t
-        self.count = 1
-        self.meanT = t
-
     def printUpdate(self):
         print(self.curTimeString())
         print(self.getSensorString()) # print current sensors
         print("Temperature Stats:")
         statsStr = "Min: %0.1f, Max: %0.1f, Mean: %0.1f" % (self.minT, self.maxT, self.meanT)
         print(statsStr + "\n")
+
+    def send_digest(self):
+        subject =  "Raspberry Pi Temperature Monitor: Daily Digest"
+        message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
+            "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
+            + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
+        self.send_alert(subject,message)
+    #end send_digest
+
+    def check_digest_time(self):
+        if self.last_digest_date < datetime.date.today() and self.daily_digest_time < datetime.datetime.now().time():
+            self.last_digest_date = datetime.date.today()
+            self.send_digest()
+    # end check_digest_time
 
     def run(self):
         self.start_mtime = time.monotonic()
@@ -92,6 +109,8 @@ class TempMonitor:
 
             self.updateStats()
             self.printUpdate()
+
+            self.check_digest_time()
 
         # end while
     # end run
