@@ -3,6 +3,7 @@
 import EmailAlertSender
 import Si7021EnvSensor
 import time
+import datetime
 import sys
 
 class TempMonitor:
@@ -13,6 +14,9 @@ class TempMonitor:
         self.SensorObj = Si7021EnvSensor.EnvSensor()
         self.minTemp = 60 # change to input?
         self.pollTime = 30 # how often to check sensor
+        self.start_mtime = time.monotonic()
+        self.min_T_alert_time = time.monotonic() # time of min temp alert, to find elasped time
+        self.max_min_T_alert_interval = 60*60 # max time between min temp alerts in seconds
     # end __init__
 
     def temperature(self):
@@ -23,6 +27,10 @@ class TempMonitor:
 
     def curTimeString(self):
         return time.strftime("%x %I:%M%p")
+    
+    def getTotalElapsedTimeString(self):
+        dt = datetime.timedelta(seconds=time.monotonic()-self.start_mtime)
+        return "Total Elapsed Time: " + str(dt) 
 
     def getSensorString(self):
         deg = " deg" #u'\xb0'  # utf code for degree, EAS currently does not support unicode
@@ -36,7 +44,8 @@ class TempMonitor:
         self.EAS.send_alert()
 
     def checkMinTemp(self):
-        if self.temperature() < self.minTemp:
+        if (self.temperature() < self.minTemp) and ((time.monotonic() - self.min_T_alert_time) > self.max_min_T_alert_interval):
+            self.min_T_alert_time = time.monotonic()
             subject = "Raspberry Pi Temperature Monitor: Low Temp Alert"
             message = self.curTimeString() + " Low Temperature\n" + self.getSensorString()
             print(subject)
@@ -67,7 +76,7 @@ class TempMonitor:
         print(statsStr + "\n")
 
     def run(self):
-        self.start_time = time.time()
+        self.start_mtime = time.monotonic()
         self.statsReset()
 
         subject = "Raspberry Pi Temperature Monitor: Startup"
