@@ -18,8 +18,11 @@ class TempMonitor:
         self.min_T_alert_time = time.monotonic() # time of min temp alert, to find elasped time
         self.max_min_T_alert_interval = 60*60 # max time between min temp alerts in seconds
         self.daily_digest_time = datetime.time(16,45) # time for a daily digest email
-        self.last_digest_date = datetime.date.today() # initialize to today
-        #self.last_digest_date = datetime.date.today() - datetime.timedelta(days=1) # initialize to yesterday's date
+        if datetime.datetime.now().time() < datetime.time(10,0): # if earlier than 10 am, send digest today
+            self.last_digest_date = datetime.date.today() - datetime.timedelta(days=1) # initialize to yesterday's date
+        else: # do not send digest until tomorrow
+            self.last_digest_date = datetime.date.today() # initialize to today
+        
     # end __init__
 
     def temperature(self):
@@ -90,6 +93,7 @@ class TempMonitor:
         if self.last_digest_date < datetime.date.today() and self.daily_digest_time < datetime.datetime.now().time():
             self.last_digest_date = datetime.date.today()
             self.send_digest()
+            self.statsReset()
     # end check_digest_time
 
     def run(self):
