@@ -5,6 +5,11 @@ import Si7021EnvSensor
 import time
 import datetime
 import sys
+import matplotlib.pyplot as plt
+#import numpy as np
+import csv
+import pandas
+import os
 
 class TempMonitor:
     def __init__(self,recipient,username,password):
@@ -22,16 +27,20 @@ class TempMonitor:
             self.last_digest_date = datetime.date.today() - datetime.timedelta(days=1) # initialize to yesterday's date
         else: # do not send digest until tomorrow
             self.last_digest_date = datetime.date.today() # initialize to today
+        self.tmp_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),'tmp')
+        self.csv_file = os.path.join(self.tmp_dir,'tmp.csv')
+        self.temp_plot = os.path.join(self.tmp_dir,'temp_plot.png')
+        self.humid_plot = os.path.join(self.tmp_dir,'humid_plot.png')
         
     # end __init__
 
-    def temperature(self):
+def temperature(self):
         return self.SensorObj.getTempF()
     
     def humidity(self):
         return self.SensorObj.getHumidity()
 
-    def statsReset(self):
+def statsReset(self):
         t = self.temperature()
         self.minT = t
         self.maxT = t
@@ -47,6 +56,21 @@ class TempMonitor:
         self.count += 1
         self.meanT = self.sumT/self.count
 
+    def open_csv(self):
+        self.csv = open(self.csv_file,'w') # open for writing and replace contents
+        self.csv_writer = csv.writer(self.csv)
+
+    def write_to_csv(self):
+        self.csv_writer.writerow([datetime.datetime.now(),self.temperature(),self.humidity()])
+
+    def read_csv_to_df(self):
+        self.csv.close()
+        self.csv = open(self.csv_file,'rb') # open for reading
+        df = pandas.read_csv(self.csv,sep=',',names=['time','temperature','humidity']) # read as data frame
+        self.csv.close()
+        self.open_csv() # resets csv file and opens for writing
+        return df
+
     def curTimeString(self):
         return time.strftime("%x %I:%M%p")
     
@@ -61,6 +85,13 @@ class TempMonitor:
         sensStr = "Temperature: " + t + deg + "F\nHumidity: " + h + "%"
         return sensStr
 
+    def printUpdate(self):
+        print(self.curTimeString())
+        print(self.getSensorString()) # print current sensors
+        print("Temperature Stats:")
+        statsStr = "Min: %0.1f, Max: %0.1f, Mean: %0.1f" % (self.minT, self.maxT, self.meanT)
+        print(statsStr + "\n")
+    
     def send_alert(self,subject,message):
         self.EAS.form_alert_message(subject,message)
         self.EAS.send_alert()
@@ -74,14 +105,22 @@ class TempMonitor:
             print(message)
             self.send_alert(subject,message)
 
-    def printUpdate(self):
-        print(self.curTimeString())
-        print(self.getSensorString()) # print current sensors
-        print("Temperature Stats:")
-        statsStr = "Min: %0.1f, Max: %0.1f, Mean: %0.1f" % (self.minT, self.maxT, self.meanT)
-        print(statsStr + "\n")
+    def create_digest_plots(self):
+        data = self.read_csv_to_df()
+        plt.figure()
+        plt.plot(data['time',data['temperature']])
+        plt.xlabel('Time')
+        plt.ylabel('Temperature')
+        plt.savefig(self.temp_plot)
+
+        plt.figure()
+        plt.plot(data['time',data['humidity']])
+        plt.xlabel('Time')
+        plt.ylabel('Humidity')
+        plt.savefig(self.humid_plot)
 
     def send_digest(self):
+        self.create_digest_plots()
         subject =  "Raspberry Pi Temperature Monitor: Daily Digest"
         message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
             "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
@@ -99,6 +138,7 @@ class TempMonitor:
     def run(self):
         self.start_mtime = time.monotonic()
         self.statsReset()
+        self.open_csv()
 
         subject = "Raspberry Pi Temperature Monitor: Startup"
         message = self.curTimeString() + " Startup\n" + self.getSensorString()
@@ -113,6 +153,7 @@ class TempMonitor:
 
             self.updateStats()
             self.printUpdate()
+            self.write_to_csv()
 
             self.check_digest_time()
 
