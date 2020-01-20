@@ -6,6 +6,7 @@ import time
 import datetime
 import sys
 import matplotlib.pyplot as plt
+#import matplotlib.dates as mdates
 #import numpy as np
 import csv
 import pandas
@@ -111,12 +112,14 @@ class TempMonitor:
         plt.plot(data['time'],data['temperature'])
         plt.xlabel('Time')
         plt.ylabel('Temperature')
+        plt.gcf().autofmt_xdate()
         plt.savefig(self.temp_plot)
 
         plt.figure()
         plt.plot(data['time'],data['humidity'])
         plt.xlabel('Time')
         plt.ylabel('Humidity')
+        plt.gcf().autofmt_xdate()
         plt.savefig(self.humid_plot)
 
     def send_digest(self):
