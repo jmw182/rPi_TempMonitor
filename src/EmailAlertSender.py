@@ -1,7 +1,10 @@
 import smtplib
-from email.mime import multipart as MIMEMultipart
-from email.mime import text as MIMEText
-from email.mime import image as MIMEImage
+#from email.mime import multipart as MIMEMultipart
+#from email.mime import text as MIMEText
+#from email.mime import image as MIMEImage
+from email.message import EmailMessage
+from email.utils import make_msgid
+import mimetypes
 import os
 
 class EAS:
@@ -69,11 +72,10 @@ class EAS:
             self.body = body
         if recipient is not None:
             self.recipient = recipient
-        if images is not None:
-            self.images = images
+        self.images = images
 
         if self.images is not None:
-            self.form_mime_alert_message(subject,body,recipient)
+            self.form_mime_alert_message(subject,body,recipient,images)
         else:
             self.full_email_text = "From: %s\nTo: %s\nSubject: %s\n\n%s\n" % (self.sender, self.recipient, self.subject, self.body)
 
@@ -88,52 +90,103 @@ class EAS:
             self.recipient = recipient
         if images is not None:
             self.images = images
+        
+        msg = EmailMessage()
 
-        msgRoot = MIMEMultipart('related')
-        msgRoot['Subject'] = self.subject
-        msgRoot['From'] = self.sender
-        msgRoot['To'] = self.recipient
-        #msgRoot.preamble = 'This is a multi-part message in MIME format.'
+        # generic email headers
+        msg['Subject'] = self.subject
+        msg['From'] = '<' + self.sender + '>'
+        msg['To'] = '<' + self.recipient + '>'
 
-        # Encapsulate the plain and HTML versions of the message body in an
-        # 'alternative' part, so message agents can decide which they want to display.
-        msgAlternative = MIMEMultipart('alternative')
-        msgRoot.attach(msgAlternative)
-
-        msgText = MIMEText(self.body)
-        msgAlternative.attach(msgText)
-
-        # We reference the image in the IMG SRC attribute by the ID we give it below
-        #msgText = MIMEText('<b>Some <i>HTML</i> text</b> and an image.<br><img src="cid:image1"><br>Nifty!', 'html')
-        #msgAlternative.attach(msgText)
+        # set the plain text body
+        msg.set_content(self.body)
+        
+        # alternate html
         msgTxt = self.body
         msgTxt = msgTxt.replace("\n","<br>")
 
-        msgImages = []
-        for img in self.images:
-            im_name = os.path.splitext(os.path.basename(img))[0] # strip path and extension from name
-            fp = open(img,'rb')
-            msgImage = MIMEImage(fp.read())
-            fp.close()
-            msgTxt = msgTxt + '<br><img src="cid:' + im_name + '"><br>' # add image tag to html
-            msgImage.add_header('Content-ID', '<' + im_name + '>')
-            msgImages.append(msgImage)
+        nImg = len(self.images)
+        image_cids = []
+        for i in range(nImg):
+            cid = make_msgid()
+            image_cids.append(cid)
+            cid = cid[1:-1] # remove < >
+            msgTxt = msgTxt + '<br><img src="cid:' + cid + '"><br>' # add image tag to html
+
+        msg.add_alternative(msgTxt,subtype='html')
+
+        # now open the images and attach to the email
+        for i in range(nImg):
+            with open(self.images[i], 'rb') as img:
+                 # know the Content-Type of the image
+                maintype, subtype = mimetypes.guess_type(img.name)[0].split('/')
+
+                # attach it
+                msg.get_payload()[1].add_related(img.read(), 
+                                                    maintype=maintype, 
+                                                    subtype=subtype, 
+                                                    cid=image_cids[i])
+        # # set an alternative html body
+        # msg.add_alternative("""\
+        # <html>
+        #     <body>
+        #         <p>This is an HTML body.<br>
+        #         It also has an image.
+        #         </p>
+        #         <img src="cid:{image_cid}">
+        #     </body>
+        # </html>
+        # """.format(image_cid=image_cid[1:-1]), subtype='html')
+        # # image_cid looks like <long.random.number@xyz.com>
+        # # to use it as the img src, we don't need `<` or `>`
+        # # so we use [1:-1] to strip them off
+
+
+        # msgRoot = MIMEMultipart('related')
+        # msgRoot['Subject'] = self.subject
+        # msgRoot['From'] = self.sender
+        # msgRoot['To'] = self.recipient
+        # #msgRoot.preamble = 'This is a multi-part message in MIME format.'
+
+        # # Encapsulate the plain and HTML versions of the message body in an
+        # # 'alternative' part, so message agents can decide which they want to display.
+        # msgAlternative = MIMEMultipart('alternative')
+        # msgRoot.attach(msgAlternative)
+
+        # msgText = MIMEText(self.body)
+        # msgAlternative.attach(msgText)
+
+        # # We reference the image in the IMG SRC attribute by the ID we give it below
+        # #msgText = MIMEText('<b>Some <i>HTML</i> text</b> and an image.<br><img src="cid:image1"><br>Nifty!', 'html')
+        # #msgAlternative.attach(msgText)
+        # msgTxt = self.body
+        # msgTxt = msgTxt.replace("\n","<br>")
+
+        # msgImages = []
+        # for img in self.images:
+        #     im_name = os.path.splitext(os.path.basename(img))[0] # strip path and extension from name
+        #     fp = open(img,'rb')
+        #     msgImage = MIMEImage(fp.read())
+        #     fp.close()
+        #     msgTxt = msgTxt + '<br><img src="cid:' + im_name + '"><br>' # add image tag to html
+        #     msgImage.add_header('Content-ID', '<' + im_name + '>')
+        #     msgImages.append(msgImage)
             
-        msgText = MIMEText(msgTxt, 'html')
-        msgAlternative.attach(msgText)
+        # msgText = MIMEText(msgTxt, 'html')
+        # msgAlternative.attach(msgText)
 
-        for img in msgImages:
-            msgRoot.attach(img)
+        # for img in msgImages:
+        #     msgRoot.attach(img)
 
-        self.full_email_text = msgRoot.as_string()
-        # This example assumes the image is in the current directory
-        #fp = open('test.jpg', 'rb')
-        #msgImage = MIMEImage(fp.read())
-        #fp.close()
+        # self.full_email_text = msgRoot.as_string()
+        # # This example assumes the image is in the current directory
+        # #fp = open('test.jpg', 'rb')
+        # #msgImage = MIMEImage(fp.read())
+        # #fp.close()
 
-        # Define the image's ID as referenced above
-        #msgImage.add_header('Content-ID', '<image1>')
-        #msgRoot.attach(msgImage)
+        # # Define the image's ID as referenced above
+        # #msgImage.add_header('Content-ID', '<image1>')
+        # #msgRoot.attach(msgImage)
 
     def send_mail(self):
          self.server.sendmail(self.sender,self.recipient,self.full_email_text)
