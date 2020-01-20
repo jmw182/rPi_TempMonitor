@@ -1,5 +1,6 @@
 # custom
 example/
+tmp/
 runTempMonitor.sh
 
 # Byte-compiled / optimized / DLL files
