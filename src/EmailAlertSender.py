@@ -1,7 +1,7 @@
 import smtplib
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
-from email.MIMEImage import MIMEImage
+from email.mime import multipart as MIMEMultipart
+from email.mime import text as MIMEText
+from email.mime import image as MIMEImage
 import os
 
 class EAS:
