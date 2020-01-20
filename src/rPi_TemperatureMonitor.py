@@ -34,13 +34,13 @@ class TempMonitor:
         
     # end __init__
 
-def temperature(self):
+    def temperature(self):
         return self.SensorObj.getTempF()
     
     def humidity(self):
         return self.SensorObj.getHumidity()
 
-def statsReset(self):
+    def statsReset(self):
         t = self.temperature()
         self.minT = t
         self.maxT = t
