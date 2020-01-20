@@ -27,7 +27,7 @@ class TempMonitor:
             self.last_digest_date = datetime.date.today() - datetime.timedelta(days=1) # initialize to yesterday's date
         else: # do not send digest until tomorrow
             self.last_digest_date = datetime.date.today() # initialize to today
-        self.tmp_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),'tmp')
+        self.tmp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),'tmp')
         self.csv_file = os.path.join(self.tmp_dir,'tmp.csv')
         self.temp_plot = os.path.join(self.tmp_dir,'temp_plot.png')
         self.humid_plot = os.path.join(self.tmp_dir,'humid_plot.png')
@@ -108,13 +108,13 @@ class TempMonitor:
     def create_digest_plots(self):
         data = self.read_csv_to_df()
         plt.figure()
-        plt.plot(data['time',data['temperature']])
+        plt.plot(data['time'],data['temperature'])
         plt.xlabel('Time')
         plt.ylabel('Temperature')
         plt.savefig(self.temp_plot)
 
         plt.figure()
-        plt.plot(data['time',data['humidity']])
+        plt.plot(data['time'],data['humidity'])
         plt.xlabel('Time')
         plt.ylabel('Humidity')
         plt.savefig(self.humid_plot)
