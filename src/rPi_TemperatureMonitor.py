@@ -6,11 +6,11 @@ import time
 import datetime
 import sys
 import matplotlib.pyplot as plt
-#import matplotlib.dates as mdates
-#import numpy as np
+import matplotlib.dates as mdates
 import csv
 import pandas
 import os
+from pandas.plotting import register_matplotlib_converters
 
 class TempMonitor:
     def __init__(self,recipient,username,password):
@@ -32,7 +32,7 @@ class TempMonitor:
         self.csv_file = os.path.join(self.tmp_dir,'tmp.csv')
         self.temp_plot = os.path.join(self.tmp_dir,'temp_plot.png')
         self.humid_plot = os.path.join(self.tmp_dir,'humid_plot.png')
-        
+        register_matplotlib_converters() 
     # end __init__
 
     def temperature(self):
@@ -108,19 +108,28 @@ class TempMonitor:
 
     def create_digest_plots(self):
         data = self.read_csv_to_df()
+        t_fmt = mdates.DateFormatter('%H:%M')
+        t = mdates.datestr2num(data["time"])
         plt.figure()
-        plt.plot(data['time'],data['temperature'])
+        plt.plot_date(t,data['temperature'],'-')
+        # plt.plot(data['time'],data['temperature'])
         plt.xlabel('Time')
         plt.ylabel('Temperature')
+        plt.title(datetime.date.today().strftime('%x'))
         plt.gcf().autofmt_xdate()
+        plt.gca().xaxis.set_major_formatter(t_fmt)
         plt.savefig(self.temp_plot)
 
         plt.figure()
-        plt.plot(data['time'],data['humidity'])
+        plt.plot_date(t,data['humidity'],'-')
+        #plt.plot(data['time'],data['humidity'])
         plt.xlabel('Time')
         plt.ylabel('Humidity')
+        plt.title(datetime.date.today().strftime('%x'))
         plt.gcf().autofmt_xdate()
+        plt.gca().xaxis.set_major_formatter(t_fmt)
         plt.savefig(self.humid_plot)
+    # end create_digest_plots
 
     def send_digest(self):
         self.create_digest_plots()
@@ -129,7 +138,7 @@ class TempMonitor:
             "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
             + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
         self.send_alert(subject,message)
-    #end send_digest
+    # end send_digest
 
     def check_digest_time(self):
         if self.last_digest_date < datetime.date.today() and self.daily_digest_time < datetime.datetime.now().time():
