@@ -126,6 +126,8 @@ class EAS:
                                                     maintype=maintype, 
                                                     subtype=subtype, 
                                                     cid=image_cids[i])
+
+        self.full_email_text = msg.as_string()
         # # set an alternative html body
         # msg.add_alternative("""\
         # <html>
