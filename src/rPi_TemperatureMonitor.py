@@ -93,8 +93,9 @@ class TempMonitor:
         statsStr = "Min: %0.1f, Max: %0.1f, Mean: %0.1f" % (self.minT, self.maxT, self.meanT)
         print(statsStr + "\n")
     
-    def send_alert(self,subject,message):
-        self.EAS.form_alert_message(subject,message)
+    def send_alert(self,subject,message,images = None):
+        
+        self.EAS.form_alert_message(subject=subject,body=message,images=images)
         self.EAS.send_alert()
 
     def checkMinTemp(self):
@@ -137,7 +138,7 @@ class TempMonitor:
         message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
             "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
             + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
-        self.send_alert(subject,message)
+        self.send_alert(subject,message,[self.temp_plot,self.humid_plot])
     # end send_digest
 
     def check_digest_time(self):
