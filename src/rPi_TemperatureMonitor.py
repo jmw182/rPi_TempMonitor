@@ -18,7 +18,7 @@ class TempMonitor:
         self.EAS.login(username,password)
         self.EAS.recipient = recipient
         self.SensorObj = Si7021EnvSensor.EnvSensor()
-        self.minTemp = 60 # change to input?
+        self.minTemp = 58 # change to input?
         self.pollTime = 30 # how often to check sensor
         self.start_mtime = time.monotonic()
         self.min_T_alert_time = time.monotonic() # time of min temp alert, to find elasped time
