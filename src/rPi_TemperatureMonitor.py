@@ -102,7 +102,8 @@ class TempMonitor:
         if (self.temperature() < self.minTemp) and ((time.monotonic() - self.min_T_alert_time) > self.max_min_T_alert_interval):
             self.min_T_alert_time = time.monotonic()
             subject = "Raspberry Pi Temperature Monitor: Low Temp Alert"
-            message = self.curTimeString() + " Low Temperature\n" + self.getSensorString()
+            message = (self.curTimeString() + " Low Temperature\n" + self.getSensorString() + "\n\n" +
+                "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count))
             print(subject)
             print(message)
             self.send_alert(subject,message)
