@@ -158,7 +158,7 @@ class TempMonitor:
         message = self.curTimeString() + " Startup\n" + self.getSensorString()
         print(subject)
         print(message)
-        #self.send_alert(subject,message)
+        self.send_alert(subject,message)
 
         while True:
             time.sleep(self.pollTime) # sleep 30 s
