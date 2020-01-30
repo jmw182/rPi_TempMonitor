@@ -32,14 +32,26 @@ class TempMonitor:
         self.csv_file = os.path.join(self.tmp_dir,'tmp.csv')
         self.temp_plot = os.path.join(self.tmp_dir,'temp_plot.png')
         self.humid_plot = os.path.join(self.tmp_dir,'humid_plot.png')
+
+        self._temperature = 0 # store values as private variables in case of sensor access error
+        self._humidity = 0
+
         register_matplotlib_converters() 
     # end __init__
 
     def temperature(self):
-        return self.SensorObj.getTempF()
+        try:
+            self._temperature = self.SensorObj.getTempF()
+        except:
+            print("Error accessing temperature")
+        return self._temperature
     
     def humidity(self):
-        return self.SensorObj.getHumidity()
+        try:
+            self._humidity = self.SensorObj.getHumidity()
+        except:
+            print("Error accessing humidity")
+        return self._humidity
 
     def statsReset(self):
         t = self.temperature()
@@ -94,9 +106,11 @@ class TempMonitor:
         print(statsStr + "\n")
     
     def send_alert(self,subject,message,images = None):
-        
-        self.EAS.form_alert_message(subject=subject,body=message,images=images)
-        self.EAS.send_alert()
+        try:
+            self.EAS.form_alert_message(subject=subject,body=message,images=images)
+            self.EAS.send_alert()
+        except:
+            print("error sending alert\n")
 
     def checkMinTemp(self):
         if (self.temperature() < self.minTemp) and ((time.monotonic() - self.min_T_alert_time) > self.max_min_T_alert_interval):
