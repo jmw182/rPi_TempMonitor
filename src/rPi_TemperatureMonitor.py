@@ -69,19 +69,32 @@ class TempMonitor:
         self.count += 1
         self.meanT = self.sumT/self.count
 
-    def open_csv(self):
+    def open_csv_w(self): # open csv for writing (clear contents)
         self.csv = open(self.csv_file,'w') # open for writing and replace contents
         self.csv_writer = csv.writer(self.csv)
+    
+    def open_csv_a(self): # open csv for writing, append
+        self.csv = open(self.csv_file,'a')
+        self.csv_writer = csv.writer(self.csv)
+    
+    def open_csv_r(self): # open csv for reading
+        self.csv = open(self.csv_file,'rb')
+
+    def close_csv(self): # closes csv
+        self.csv.close()
 
     def write_to_csv(self):
         self.csv_writer.writerow([datetime.datetime.now(),self.temperature(),self.humidity()])
+        # force write to disk
+        self.csv.flush()
+        os.fsync(self.csv.fileno())
 
     def read_csv_to_df(self):
-        self.csv.close()
-        self.csv = open(self.csv_file,'rb') # open for reading
+        self.close_csv()
+        self.open_csv_r()
         df = pandas.read_csv(self.csv,sep=',',names=['time','temperature','humidity']) # read as data frame
-        self.csv.close()
-        self.open_csv() # resets csv file and opens for writing
+        self.close_csv()
+        self.open_csv_w() # resets csv file and opens for writing
         return df
 
     def curTimeString(self):
@@ -166,7 +179,7 @@ class TempMonitor:
     def run(self):
         self.start_mtime = time.monotonic()
         self.statsReset()
-        self.open_csv()
+        self.open_csv_a() # opens and appends
 
         subject = "Raspberry Pi Temperature Monitor: Startup"
         message = self.curTimeString() + " Startup\n" + self.getSensorString()
