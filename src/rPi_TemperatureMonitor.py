@@ -19,10 +19,11 @@ class TempMonitor:
         self.EAS.recipient = recipient
         self.SensorObj = Si7021EnvSensor.EnvSensor()
         self.minTemp = 58 # change to input?
+        self.maxTemp = 90
         self.pollTime = 30 # how often to check sensor
         self.start_mtime = time.monotonic()
-        self.min_T_alert_time = time.monotonic() # time of min temp alert, to find elasped time
-        self.max_min_T_alert_interval = 60*60 # max time between min temp alerts in seconds
+        self.last_T_alert_time = time.monotonic() # time of min temp alert, to find elasped time
+        self.max_T_alert_interval = 60.0*60.0 # max time between min temp alerts in seconds
         self.daily_digest_time = datetime.time(16,45) # time for a daily digest email
         if datetime.datetime.now().time() < datetime.time(10,0): # if earlier than 10 am, send digest today
             self.last_digest_date = datetime.date.today() - datetime.timedelta(days=1) # initialize to yesterday's date
@@ -125,12 +126,21 @@ class TempMonitor:
         except:
             print("error sending alert\n")
 
-    def checkMinTemp(self):
-        if (self.temperature() < self.minTemp) and ((time.monotonic() - self.min_T_alert_time) > self.max_min_T_alert_interval):
-            self.min_T_alert_time = time.monotonic()
+    def checkTempLimits(self):
+        badTemp = False
+        if (self.temperature() < self.minTemp) and ((time.monotonic() - self.last_T_alert_time) > self.max_T_alert_interval):
+            badTemp = True
+            self.last_T_alert_time = time.monotonic()
             subject = "Raspberry Pi Temperature Monitor: Low Temp Alert"
-            message = (self.curTimeString() + " Low Temperature\n" + self.getSensorString() + "\n\n" +
-                "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count))
+            message = (self.curTimeString() + " Low Temperature\n" + self.getSensorString() + "\n\n")
+        elif (self.temperature() > self.maxTemp) and ((time.monotonic() - self.last_T_alert_time) > self.max_T_alert_interval):
+            badTemp = True
+            self.last_T_alert_time = time.monotonic()
+            subject = "Raspberry Pi Temperature Monitor: High Temp Alert"
+            message = (self.curTimeString() + " High Temperature\n" + self.getSensorString() + "\n\n")
+
+        if badTemp:
+            message += ("Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count))
             print(subject)
             print(message)
             self.send_alert(subject,message)
@@ -190,7 +200,7 @@ class TempMonitor:
         while True:
             time.sleep(self.pollTime) # sleep 30 s
 
-            self.checkMinTemp() # check that min temp is satisfied
+            self.checkTempLimits() # check that min/max temps are satisfied
 
             self.updateStats()
             self.printUpdate()
