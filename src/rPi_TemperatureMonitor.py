@@ -109,10 +109,10 @@ class TempMonitor:
 
     def write_to_csv(self,tfdw = 'd'):
         if tfdw.lower() == 'w': # weekly
-            csv_file = self.weekly_csv_file
+            csv_file = self.weekly_csv
             csv_writer = self.weekly_csv_writer
         else: # assume daily
-            csv_file = self.daily_csv_file
+            csv_file = self.daily_csv
             csv_writer = self.daily_csv_writer
 
         row = [datetime.datetime.now(),self.temperature(),self.humidity()]
@@ -126,9 +126,9 @@ class TempMonitor:
         self.open_csv_r(tfdw)
 
         if tfdw.lower() == 'w': # weekly
-            csv_file = self.weekly_csv_file
+            csv_file = self.weekly_csv
         else: # assume daily
-            csv_file = self.daily_csv_file
+            csv_file = self.daily_csv
 
         df = pandas.read_csv(csv_file,sep=',',names=['time','temperature','humidity']) # read as data frame
         self.close_csv(tfdw)
