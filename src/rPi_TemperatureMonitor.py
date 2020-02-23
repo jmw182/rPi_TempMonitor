@@ -32,6 +32,7 @@ class TempMonitor:
             self.last_digest_date = datetime.date.today() # initialize to today
         self.tmp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),'tmp')
         self.daily_csv_file = os.path.join(self.tmp_dir,'tmp_daily.csv')
+        self.weekly_csv_file = os.path.join(self.tmp_dir,'tmp_weekly.csv')
         self.temp_plot = os.path.join(self.tmp_dir,'temp_plot.png')
         self.humid_plot = os.path.join(self.tmp_dir,'humid_plot.png')
 
@@ -71,32 +72,66 @@ class TempMonitor:
         self.count += 1
         self.meanT = self.sumT/self.count
 
-    def open_csv_w(self): # open csv for writing (clear contents)
-        self.csv = open(self.daily_csv_file,'w') # open for writing and replace contents
-        self.csv_writer = csv.writer(self.csv)
+    def open_csv_w(self,tfdw = 'd'): # open csv for writing (clear contents)
+        if tfdw.lower() == 'w': # weekly
+            filename = self.weekly_csv_file
+            self.weekly_csv = open(filename,'w') # open for writing and replace contents
+            self.weekly_csv_writer = csv.writer(self.weekly_csv)
+        else: # assume daily
+            filename = self.daily_csv_file
+            self.daily_csv = open(filename,'w')
+            self.daily_csv_writer = csv.writer(self.daily_csv)
     
-    def open_csv_a(self): # open csv for writing, append
-        self.csv = open(self.daily_csv_file,'a')
-        self.csv_writer = csv.writer(self.csv)
+    def open_csv_a(self,tfdw = 'd'): # open csv for writing, append
+        if tfdw.lower() == 'w': # weekly
+            filename = self.weekly_csv_file
+            self.weekly_csv = open(filename,'a')
+            self.weekly_csv_writer = csv.writer(self.weekly_csv)
+        else: # assume daily
+            filename = self.daily_csv_file
+            self.daily_csv = open(filename,'a')
+            self.daily_csv_writer = csv.writer(self.daily_csv)
     
-    def open_csv_r(self): # open csv for reading
-        self.csv = open(self.daily_csv_file,'rb')
+    def open_csv_r(self,tfdw = 'd'): # open csv for reading
+        if tfdw.lower() == 'w': # weekly
+            filename = self.weekly_csv_file
+            self.weekly_csv = open(filename,'rb')
+        else: # assume daily
+            filename = self.daily_csv_file
+            self.daily_csv = open(filename,'rb')
 
-    def close_csv(self): # closes csv
-        self.csv.close()
+    def close_csv(self,tfdw = 'd'): # closes csv
+        if tfdw.lower() == 'w': # weekly
+            self.weekly_csv.close()
+        else: # assume daily
+            self.daily_csv.close()
 
-    def write_to_csv(self):
-        self.csv_writer.writerow([datetime.datetime.now(),self.temperature(),self.humidity()])
+    def write_to_csv(self,tfdw = 'd'):
+        if tfdw.lower() == 'w': # weekly
+            csv_file = self.weekly_csv_file
+            csv_writer = self.weekly_csv_writer
+        else: # assume daily
+            csv_file = self.daily_csv_file
+            csv_writer = self.daily_csv_writer
+
+        row = [datetime.datetime.now(),self.temperature(),self.humidity()]
+        csv_writer.writerow(row)
         # force write to disk
-        self.csv.flush()
-        os.fsync(self.csv.fileno())
+        csv_file.flush()
+        os.fsync(csv_file.fileno())
 
-    def read_csv_to_df(self):
-        self.close_csv()
-        self.open_csv_r()
-        df = pandas.read_csv(self.csv,sep=',',names=['time','temperature','humidity']) # read as data frame
-        self.close_csv()
-        self.open_csv_w() # resets csv file and opens for writing
+    def read_csv_to_df(self,tfdw = 'd'):
+        self.close_csv(tfdw)
+        self.open_csv_r(tfdw)
+n6
+        if tfdw.lower() == 'w': # weekly
+            csv_file = self.weekly_csv_file
+        else: # assume daily
+            csv_file = self.daily_csv_file
+
+        df = pandas.read_csv(csv_file,sep=',',names=['time','temperature','humidity']) # read as data frame
+        self.close_csv(tfdw)
+        self.open_csv_w(tfdw) # resets csv file and opens for writing
         return df
 
     def curTimeString(self):
