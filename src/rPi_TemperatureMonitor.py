@@ -14,6 +14,7 @@ from pandas.plotting import register_matplotlib_converters
 
 class TempMonitor:
     def __init__(self,recipient,username,password):
+        self.sendDailyDigestFlag = True
         self.EAS = EmailAlertSender.EAS()
         self.EAS.login(username,password)
         self.EAS.recipient = recipient
@@ -30,7 +31,7 @@ class TempMonitor:
         else: # do not send digest until tomorrow
             self.last_digest_date = datetime.date.today() # initialize to today
         self.tmp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),'tmp')
-        self.csv_file = os.path.join(self.tmp_dir,'tmp.csv')
+        self.daily_csv_file = os.path.join(self.tmp_dir,'tmp_daily.csv')
         self.temp_plot = os.path.join(self.tmp_dir,'temp_plot.png')
         self.humid_plot = os.path.join(self.tmp_dir,'humid_plot.png')
 
@@ -71,15 +72,15 @@ class TempMonitor:
         self.meanT = self.sumT/self.count
 
     def open_csv_w(self): # open csv for writing (clear contents)
-        self.csv = open(self.csv_file,'w') # open for writing and replace contents
+        self.csv = open(self.daily_csv_file,'w') # open for writing and replace contents
         self.csv_writer = csv.writer(self.csv)
     
     def open_csv_a(self): # open csv for writing, append
-        self.csv = open(self.csv_file,'a')
+        self.csv = open(self.daily_csv_file,'a')
         self.csv_writer = csv.writer(self.csv)
     
     def open_csv_r(self): # open csv for reading
-        self.csv = open(self.csv_file,'rb')
+        self.csv = open(self.daily_csv_file,'rb')
 
     def close_csv(self): # closes csv
         self.csv.close()
@@ -172,11 +173,12 @@ class TempMonitor:
 
     def send_digest(self):
         self.create_digest_plots()
-        subject =  "Raspberry Pi Temperature Monitor: Daily Digest"
-        message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
-            "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
-            + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
-        self.send_alert(subject,message,[self.temp_plot,self.humid_plot])
+        if self.sendDailyDigestFlag:
+            subject =  "Raspberry Pi Temperature Monitor: Daily Digest"
+            message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
+                "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
+                + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
+            self.send_alert(subject,message,[self.temp_plot,self.humid_plot])
     # end send_digest
 
     def check_digest_time(self):
