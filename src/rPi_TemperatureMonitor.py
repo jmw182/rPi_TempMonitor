@@ -15,6 +15,7 @@ from pandas.plotting import register_matplotlib_converters
 class TempMonitor:
     def __init__(self,recipient,username,password):
         self.sendDailyDigestFlag = True
+        self.sendStartupAlertFlag = False
         self.EAS = EmailAlertSender.EAS()
         self.EAS.login(username,password)
         self.EAS.recipient = recipient
@@ -123,7 +124,7 @@ class TempMonitor:
     def read_csv_to_df(self,tfdw = 'd'):
         self.close_csv(tfdw)
         self.open_csv_r(tfdw)
-n6
+
         if tfdw.lower() == 'w': # weekly
             csv_file = self.weekly_csv_file
         else: # assume daily
@@ -232,7 +233,8 @@ n6
         message = self.curTimeString() + " Startup\n" + self.getSensorString()
         print(subject)
         print(message)
-        self.send_alert(subject,message)
+        if sendStartupAlertFlag:
+            self.send_alert(subject,message)
 
         while True:
             time.sleep(self.pollTime) # sleep 30 s
