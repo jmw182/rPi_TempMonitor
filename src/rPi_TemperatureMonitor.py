@@ -127,10 +127,10 @@ class TempMonitor:
 
     def zip_csv(self,tfdw = 'd'):
         if tfdw.lower() == 'w': # weekly
-            csv_file = self.weekly_csv
+            csv_file = self.weekly_csv_file
             gz_file = self.weekly_gz_file
         else: # assume daily
-            csv_file = self.daily_csv
+            csv_file = self.daily_csv_file
             gz_file = self.daily_gz_file
 
         with open(csv_file, 'rb') as f_in:
