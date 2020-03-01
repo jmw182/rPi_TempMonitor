@@ -11,6 +11,8 @@ import csv
 import pandas
 import os
 from pandas.plotting import register_matplotlib_converters
+import gzip
+import shutil
 
 class TempMonitor:
     def __init__(self,recipient,username,password):
@@ -33,7 +35,9 @@ class TempMonitor:
             self.last_digest_date = datetime.date.today() # initialize to today
         self.tmp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),'tmp')
         self.daily_csv_file = os.path.join(self.tmp_dir,'tmp_daily.csv')
+        self.daily_gz_file = os.path.join(self.tmp_dir,'tmp_daily.csv.gz')
         self.weekly_csv_file = os.path.join(self.tmp_dir,'tmp_weekly.csv')
+        self.weekly_gz_file = os.path.join(self.tmp_dir,'tmp_weekly.csv.gz')
         self.temp_plot = os.path.join(self.tmp_dir,'temp_plot.png')
         self.humid_plot = os.path.join(self.tmp_dir,'humid_plot.png')
 
@@ -121,7 +125,20 @@ class TempMonitor:
         csv_file.flush()
         os.fsync(csv_file.fileno())
 
-    def read_csv_to_df(self,tfdw = 'd'):
+    def zip_csv(self,tfdw = 'd'):
+        if tfdw.lower() == 'w': # weekly
+            csv_file = self.weekly_csv
+            gz_file = self.weekly_gz_file
+        else: # assume daily
+            csv_file = self.daily_csv
+            gz_file = self.daily_gz_file
+
+        with open(csv_file, 'rb') as f_in:
+            with gzip.open(gz_file, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+    # end zip_csv
+
+    def read_csv_to_df(self,tfdw = 'd',reset = True):
         self.close_csv(tfdw)
         self.open_csv_r(tfdw)
 
@@ -132,7 +149,11 @@ class TempMonitor:
 
         df = pandas.read_csv(csv_file,sep=',',names=['time','temperature','humidity']) # read as data frame
         self.close_csv(tfdw)
-        self.open_csv_w(tfdw) # resets csv file and opens for writing
+        self.zip_csv(tfdw)
+        if reset == True:
+            self.open_csv_w(tfdw) # resets csv file and opens for writing
+        else:
+            self.open_csv_a(tfdw) # appends to csv
         return df
 
     def curTimeString(self):
@@ -185,13 +206,14 @@ class TempMonitor:
     def create_digest_plots(self):
         data = self.read_csv_to_df()
         t_fmt = mdates.DateFormatter('%H:%M')
+        plt_title = datetime.date.today().strftime('%x')
         t = mdates.datestr2num(data["time"])
         plt.figure()
         plt.plot_date(t,data['temperature'],'-')
         # plt.plot(data['time'],data['temperature'])
         plt.xlabel('Time')
         plt.ylabel('Temperature')
-        plt.title(datetime.date.today().strftime('%x'))
+        plt.title(plt_title)
         plt.gcf().autofmt_xdate()
         plt.gca().xaxis.set_major_formatter(t_fmt)
         plt.savefig(self.temp_plot)
@@ -201,7 +223,7 @@ class TempMonitor:
         #plt.plot(data['time'],data['humidity'])
         plt.xlabel('Time')
         plt.ylabel('Humidity')
-        plt.title(datetime.date.today().strftime('%x'))
+        plt.title(plt_title)
         plt.gcf().autofmt_xdate()
         plt.gca().xaxis.set_major_formatter(t_fmt)
         plt.savefig(self.humid_plot)
