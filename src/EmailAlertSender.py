@@ -2,6 +2,7 @@ import smtplib
 from email.message import EmailMessage
 from email.utils import make_msgid
 import mimetypes
+import os
 
 class EAS:
 # Wrapper for smtplib to send easy email alerts.
@@ -21,6 +22,7 @@ class EAS:
         self.body = None
         self.full_email_text = None
         self.images = None
+        self.attachments = None
 
         self.__password = None
     # end __init__
@@ -61,7 +63,7 @@ class EAS:
         self.server.login(self.sender,self.__password)
     # end login_server
     
-    def form_alert_message(self,subject = None,body = None,recipient = None,images = None):
+    def form_alert_message(self,subject = None,body = None,recipient = None,images = None,attachments = None):
         if subject is not None:
             self.subject = subject
         if body is not None:
@@ -69,22 +71,33 @@ class EAS:
         if recipient is not None:
             self.recipient = recipient
         self.images = images
+        self.attachments = attachments
 
-        if self.images is not None:
-            self.form_mime_alert_message(subject,body,recipient,images)
+        if self.images is not None or self.attachments is not None:
+            self.form_mime_alert_message(subject,body,recipient,images,attachments)
         else:
             self.full_email_text = "From: %s\nTo: %s\nSubject: %s\n\n%s\n" % (self.sender, self.recipient, self.subject, self.body)
     # end form_alert_message
 
-    def form_mime_alert_message(self,subject = None,body = None,recipient = None,images = None):
+    def form_mime_alert_message(self,subject = None,body = None,recipient = None,images = None,attachments = None):
         if subject is not None:
             self.subject = subject
         if body is not None:
             self.body = body
         if recipient is not None:
             self.recipient = recipient
-        if images is not None:
-            self.images = images
+        self.images = images
+        self.attachments = attachments
+
+        if self.images is None:
+            nImg = 0
+        else:
+            nImg = len(self.images)
+        
+        if self.attachments is None:
+            nAttch = 0
+        else:
+            nAttch = len(self.attachments)
         
         msg = EmailMessage()
 
@@ -99,8 +112,7 @@ class EAS:
         # alternate html
         msgTxt = self.body
         msgTxt = msgTxt.replace("\n","<br>")
-
-        nImg = len(self.images)
+        
         image_cids = []
         for i in range(nImg):
             cid = make_msgid()
@@ -122,7 +134,22 @@ class EAS:
                                                     subtype=subtype, 
                                                     cid=image_cids[i])
         # end for
-
+        
+        # attach additional attachments
+        for i in range(nAttch):
+            with open(self.attachments[i], 'rb') as fp:
+                # get content type
+                ctype, encoding = mimetypes.guess_type(fp.name)
+                if ctype is None or encoding is not None: # unknown or compressed
+                    ctype = 'application/octet-stream'
+                maintype, subtype = ctype.split('/', 1)
+                # attach it
+                msg.get_payload()[1].add_related(fp.read(),
+                                                    maintype=maintype,
+                                                    subtype=subtype,
+                                                    filename=os.path.basename(fp.name))
+        # end for
+        
         self.full_email_text = msg.as_string()
     # end form_mime_alert_message
 
