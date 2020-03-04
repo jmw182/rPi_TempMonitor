@@ -179,7 +179,7 @@ class TempMonitor:
     
     def send_alert(self,subject,message,images = None,attachments = None):
         try:
-            self.EAS.form_alert_message(subject=subject,body=message,images=images,attachments=attachments)
+            self.EAS.form_alert_message(subject=subject,body=message,recipient=self.EAS.recipient,images=images,attachments=attachments)
             self.EAS.send_alert()
         except:
             print("error sending alert\n")
@@ -232,7 +232,7 @@ class TempMonitor:
     def send_digest(self):
         self.create_digest_plots()
         if self.sendDailyDigestFlag:
-            subject =  "Raspberry Pi Temperature Monitor: Daily Digest"
+            
             message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
                 "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
                 + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
