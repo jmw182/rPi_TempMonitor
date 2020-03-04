@@ -237,7 +237,7 @@ class TempMonitor:
             message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
                 "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
                 + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
-            self.send_alert(subject,message,[self.temp_plot,self.humid_plot],self.daily_gz_file)
+            self.send_alert(subject,message,[self.temp_plot,self.humid_plot],[self.daily_gz_file])
     # end send_digest
 
     def check_digest_time(self):
