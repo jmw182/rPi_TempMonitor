@@ -17,7 +17,7 @@ import shutil
 class TempMonitor:
     def __init__(self,recipient,username,password):
         self.sendDailyDigestFlag = True
-        self.sendStartupAlertFlag = False
+        self.sendStartupAlertFlag = True
         self.EAS = EmailAlertSender.EAS()
         self.EAS.login(username,password)
         self.EAS.recipient = recipient
