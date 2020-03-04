@@ -233,6 +233,7 @@ class TempMonitor:
         self.create_digest_plots()
         if self.sendDailyDigestFlag:
             
+            subject =  "Raspberry Pi Temperature Monitor: Daily Digest"
             message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
                 "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
                 + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
