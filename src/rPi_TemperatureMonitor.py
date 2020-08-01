@@ -16,7 +16,7 @@ import gzip
 import shutil
 
 class TempMonitor:
-    def __init__(self,recipient,username,password)
+    def __init__(self,recipient,username,password):
         self.sendDailyDigestFlag = True
         self.sendWeeklyDigestFlag = True
         self.sendStartupAlertFlag = True
