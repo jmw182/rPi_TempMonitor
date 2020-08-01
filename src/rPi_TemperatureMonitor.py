@@ -330,6 +330,7 @@ class TempMonitor:
         self.statsReset()
         self.weeklyStatsReset()
         self.open_csv_a() # opens and appends
+        self.open_csv_a('w')
 
         subject = "Raspberry Pi Temperature Monitor: Startup"
         message = self.curTimeString() + " Startup\n" + self.getSensorString()
