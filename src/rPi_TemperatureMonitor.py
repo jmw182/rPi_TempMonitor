@@ -4,6 +4,7 @@ import EmailAlertSender
 import Si7021EnvSensor
 import time
 import datetime
+import calendar
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -15,8 +16,9 @@ import gzip
 import shutil
 
 class TempMonitor:
-    def __init__(self,recipient,username,password):
+    def __init__(self,recipient,username,password)
         self.sendDailyDigestFlag = True
+        self.sendWeeklyDigestFlag = True
         self.sendStartupAlertFlag = True
         self.EAS = EmailAlertSender.EAS()
         self.EAS.login(username,password)
@@ -29,17 +31,20 @@ class TempMonitor:
         self.last_T_alert_time = time.monotonic() # time of min temp alert, to find elasped time
         self.max_T_alert_interval = 60.0*60.0 # max time between min temp alerts in seconds
         self.daily_digest_time = datetime.time(16,45) # time for a daily digest email
+        self.weekly_digest_time = self.daily_digest_time
+        self.weekly_digest_day = 'Friday'
         if datetime.datetime.now().time() < datetime.time(10,0): # if earlier than 10 am, send digest today
             self.last_digest_date = datetime.date.today() - datetime.timedelta(days=1) # initialize to yesterday's date
         else: # do not send digest until tomorrow
             self.last_digest_date = datetime.date.today() # initialize to today
+        self.last_weekly_digest_date = self.last_digest_date
         self.tmp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),'tmp')
         self.daily_csv_file = os.path.join(self.tmp_dir,'tmp_daily.csv')
         self.daily_gz_file = os.path.join(self.tmp_dir,'tmp_daily.csv.gz')
         self.weekly_csv_file = os.path.join(self.tmp_dir,'tmp_weekly.csv')
         self.weekly_gz_file = os.path.join(self.tmp_dir,'tmp_weekly.csv.gz')
-        self.temp_plot = os.path.join(self.tmp_dir,'temp_plot.png')
-        self.humid_plot = os.path.join(self.tmp_dir,'humid_plot.png')
+        self.temp_plot = os.path.join(self.tmp_dir,'temp_plot_DOW.png') # DOW will be replaced with day of week
+        self.humid_plot = os.path.join(self.tmp_dir,'humid_plot_DOW.png') # DOW will be replaced with day of week
 
         self._temperature = 0 # store values as private variables in case of sensor access error
         self._humidity = 0
@@ -69,6 +74,14 @@ class TempMonitor:
         self.count = 1
         self.meanT = t
 
+    def weeklyStatsReset(self):
+        t = self.temperature()
+        self.minT_week = t
+        self.maxT_week = t
+        self.sumT_week = t
+        self.count_week = 1
+        self.meanT_week = t
+
     def updateStats(self):
         t = self.temperature()
         self.minT = min(self.minT,t)
@@ -76,6 +89,12 @@ class TempMonitor:
         self.sumT += t
         self.count += 1
         self.meanT = self.sumT/self.count
+
+        self.minT_week = min(self.minT_week,t)
+        self.maxT_week = max(self.maxT_week,t)
+        self.sumT_week += t
+        self.count_week += 1
+        self.meanT_week = self.sumT_week/self.count_week
 
     def open_csv_w(self,tfdw = 'd'): # open csv for writing (clear contents)
         if tfdw.lower() == 'w': # weekly
@@ -158,6 +177,9 @@ class TempMonitor:
 
     def curTimeString(self):
         return time.strftime("%x %I:%M%p")
+
+    def curDayOfWeekString(self):
+        return calendar.day_name[datetime.date.today().weekday()]
     
     def getTotalElapsedTimeString(self):
         dt = datetime.timedelta(seconds=time.monotonic()-self.start_mtime)
@@ -173,9 +195,12 @@ class TempMonitor:
     def printUpdate(self):
         print(self.curTimeString())
         print(self.getSensorString()) # print current sensors
-        print("Temperature Stats:")
+        print("Temperature Daily Stats:")
         statsStr = "Min: %0.1f, Max: %0.1f, Mean: %0.1f" % (self.minT, self.maxT, self.meanT)
         print(statsStr + "\n")
+        print("Temperature Weekly Stats:")
+        statsStrWeek = "Min: %0.1f, Max: %0.1f, Mean: %0.1f" % (self.minT_week, self.maxT_week, self.meanT_week)
+        print(statsStrWeek + "\n")
     
     def send_alert(self,subject,message,images = None,attachments = None):
         try:
@@ -203,7 +228,10 @@ class TempMonitor:
             print(message)
             self.send_alert(subject,message)
 
-    def create_digest_plots(self):
+    def create_daily_digest_plots(self):
+        temp_plot_name = self.temp_plot.replace('DOW', self.curDayOfWeekString)
+        humid_plot_name = self.humid_plot.replace('DOW', self.curDayOfWeekString)
+
         data = self.read_csv_to_df()
         t_fmt = mdates.DateFormatter('%H:%M')
         plt_title = datetime.date.today().strftime('%x')
@@ -216,7 +244,7 @@ class TempMonitor:
         plt.title(plt_title)
         plt.gcf().autofmt_xdate()
         plt.gca().xaxis.set_major_formatter(t_fmt)
-        plt.savefig(self.temp_plot)
+        plt.savefig(temp_plot_name)
 
         plt.figure()
         plt.plot_date(t,data['humidity'],'-')
@@ -226,30 +254,81 @@ class TempMonitor:
         plt.title(plt_title)
         plt.gcf().autofmt_xdate()
         plt.gca().xaxis.set_major_formatter(t_fmt)
-        plt.savefig(self.humid_plot)
-    # end create_digest_plots
+        plt.savefig(humid_plot_name)
+    # end create_daily_digest_plots
 
-    def send_digest(self):
-        self.create_digest_plots()
+    def create_weekly_digest_plots(self):
+        temp_plot_name = self.temp_plot.replace('DOW', 'week')
+        humid_plot_name = self.humid_plot.replace('DOW', 'week')
+
+        data = self.read_csv_to_df('w')
+        t_fmt = mdates.DateFormatter('%a %H:%M')
+        plt_title = datetime.date.today().strftime('%x')
+        t = mdates.datestr2num(data["time"])
+        plt.figure()
+        plt.plot_date(t,data['temperature'],'-')
+        # plt.plot(data['time'],data['temperature'])
+        plt.xlabel('Time')
+        plt.ylabel('Temperature')
+        plt.title(plt_title)
+        plt.gcf().autofmt_xdate()
+        plt.gca().xaxis.set_major_formatter(t_fmt)
+        plt.savefig(temp_plot_name)
+
+        plt.figure()
+        plt.plot_date(t,data['humidity'],'-')
+        #plt.plot(data['time'],data['humidity'])
+        plt.xlabel('Time')
+        plt.ylabel('Humidity')
+        plt.title(plt_title)
+        plt.gcf().autofmt_xdate()
+        plt.gca().xaxis.set_major_formatter(t_fmt)
+        plt.savefig(humid_plot_name)
+    # end create_weekly_digest_plots
+
+    def send_daily_digest(self):
+        self.create_daily_digest_plots()
         if self.sendDailyDigestFlag:
+            temp_plot_name = self.temp_plot.replace('DOW', self.curDayOfWeekString)
+            humid_plot_name = self.humid_plot.replace('DOW', self.curDayOfWeekString)
             
             subject =  "Raspberry Pi Temperature Monitor: Daily Digest"
             message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
                 "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
                 + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
-            self.send_alert(subject,message,[self.temp_plot,self.humid_plot],[self.daily_gz_file])
-    # end send_digest
+            self.send_alert(subject,message,[temp_plot_name, humid_plot_name],[self.daily_gz_file])
+    # end send_daily_digest
+
+    def send_weekly_digest(self):
+        self.create_weekly_digest_plots()
+        if self.sendWeeklyDigestFlag:
+            temp_plot_name = self.temp_plot.replace('DOW', 'week')
+            humid_plot_name = self.humid_plot.replace('DOW', 'week')
+
+            subject =  "Raspberry Pi Temperature Monitor: Weekly Digest"
+            message = (self.curTimeString() + " Weekly Digest\nTemperature Stats:\n" +
+                "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT_week, self.maxT_week, self.meanT_week, self.count_week)
+                + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
+            self.send_alert(subject,message,[temp_plot_name, humid_plot_name],[self.weekly_gz_file])
+    # end send_weekly_digest
 
     def check_digest_time(self):
         if self.last_digest_date < datetime.date.today() and self.daily_digest_time < datetime.datetime.now().time():
             self.last_digest_date = datetime.date.today()
-            self.send_digest()
+            self.send_daily_digest()
             self.statsReset()
+
+        if self.weekly_digest_day == self.curDayOfWeekString and self.last_weekly_digest_date < datetime.date.today() and self.weekly_digest_time < datetime.datetime.now().time():
+            self.last_weekly_digest_date = datetime.date.today()
+            self.send_weekly_digest()
+            self.weeklyStatsReset()
+
     # end check_digest_time
 
     def run(self):
         self.start_mtime = time.monotonic()
         self.statsReset()
+        self.weeklyStatsReset()
         self.open_csv_a() # opens and appends
 
         subject = "Raspberry Pi Temperature Monitor: Startup"
@@ -267,6 +346,7 @@ class TempMonitor:
             self.updateStats()
             self.printUpdate()
             self.write_to_csv()
+            self.write_to_csv('w') # weekly csv
 
             self.check_digest_time()
 
