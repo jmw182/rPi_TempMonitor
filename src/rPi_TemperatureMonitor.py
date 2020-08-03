@@ -229,8 +229,8 @@ class TempMonitor:
             self.send_alert(subject,message)
 
     def create_daily_digest_plots(self):
-        temp_plot_name = self.temp_plot.replace('DOW', self.curDayOfWeekString)
-        humid_plot_name = self.humid_plot.replace('DOW', self.curDayOfWeekString)
+        temp_plot_name = self.temp_plot.replace('DOW', self.curDayOfWeekString() )
+        humid_plot_name = self.humid_plot.replace('DOW', self.curDayOfWeekString() )
 
         data = self.read_csv_to_df()
         t_fmt = mdates.DateFormatter('%H:%M')
@@ -289,8 +289,8 @@ class TempMonitor:
     def send_daily_digest(self):
         self.create_daily_digest_plots()
         if self.sendDailyDigestFlag:
-            temp_plot_name = self.temp_plot.replace('DOW', self.curDayOfWeekString)
-            humid_plot_name = self.humid_plot.replace('DOW', self.curDayOfWeekString)
+            temp_plot_name = self.temp_plot.replace('DOW', self.curDayOfWeekString() )
+            humid_plot_name = self.humid_plot.replace('DOW', self.curDayOfWeekString() )
             
             subject =  "Raspberry Pi Temperature Monitor: Daily Digest"
             message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
@@ -318,7 +318,7 @@ class TempMonitor:
             self.send_daily_digest()
             self.statsReset()
 
-        if self.weekly_digest_day == self.curDayOfWeekString and self.last_weekly_digest_date < datetime.date.today() and self.weekly_digest_time < datetime.datetime.now().time():
+        if self.weekly_digest_day == self.curDayOfWeekString() and self.last_weekly_digest_date < datetime.date.today() and self.weekly_digest_time < datetime.datetime.now().time():
             self.last_weekly_digest_date = datetime.date.today()
             self.send_weekly_digest()
             self.weeklyStatsReset()
