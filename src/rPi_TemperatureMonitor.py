@@ -17,9 +17,11 @@ import shutil
 
 class TempMonitor:
     def __init__(self,recipient,username,password):
-        self.sendDailyDigestFlag = True
+        self.sendDailyDigestFlag = False
         self.sendWeeklyDigestFlag = True
         self.sendStartupAlertFlag = True
+        self.sendDailyDataFlag = False # flag to send data file with daily digest email, in addition to plots (only if sendDailyDigestFlag is True)
+        self.sendWeeklyDataFlag = False # flag to send data file with weekly digest email, in addition to plots (only if sendWeeklyDigestFlag is True)
         self.EAS = EmailAlertSender.EAS()
         self.EAS.login(username,password)
         self.EAS.recipient = recipient
@@ -296,7 +298,10 @@ class TempMonitor:
             message = (self.curTimeString() + " Daily Digest\nTemperature Stats:\n" +
                 "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT, self.maxT, self.meanT, self.count)
                 + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
-            self.send_alert(subject,message,[temp_plot_name, humid_plot_name],[self.daily_gz_file])
+            if self.sendDailyDataFlag:
+                self.send_alert(subject,message,[temp_plot_name, humid_plot_name],[self.daily_gz_file])
+            else:
+                self.send_alert(subject,message,[temp_plot_name, humid_plot_name])
     # end send_daily_digest
 
     def send_weekly_digest(self):
@@ -309,7 +314,10 @@ class TempMonitor:
             message = (self.curTimeString() + " Weekly Digest\nTemperature Stats:\n" +
                 "Min: %0.1f, Max: %0.1f, Mean: %0.1f, Count: %0.1f" % (self.minT_week, self.maxT_week, self.meanT_week, self.count_week)
                 + "\n\nCurrent Values:\n" + self.getSensorString() + "\n\n" + self.getTotalElapsedTimeString())
-            self.send_alert(subject,message,[temp_plot_name, humid_plot_name],[self.weekly_gz_file])
+            if self.sendWeeklyDataFlag:
+                self.send_alert(subject,message,[temp_plot_name, humid_plot_name],[self.weekly_gz_file])
+            else:
+                self.send_alert(subject,message,[temp_plot_name, humid_plot_name])
     # end send_weekly_digest
 
     def check_digest_time(self):
