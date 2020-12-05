@@ -26,7 +26,7 @@ class TempMonitor:
         self.EAS.login(username,password)
         self.EAS.recipient = recipient
         self.SensorObj = Si7021EnvSensor.EnvSensor()
-        self.minTemp = 58 # change to input?
+        self.minTemp = 64.6 # change to input?
         self.maxTemp = 90
         self.pollTime = 30 # how often to check sensor
         self.start_mtime = time.monotonic()
